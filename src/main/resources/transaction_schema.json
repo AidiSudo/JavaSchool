@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "operationType": {
+      "type": "string",
+      "enum": [
+        "DEBIT",
+        "CREDITING",
+        "ARREST"
+      ]
+    },
+    "sum": {
+      "type": "number"
+    },
+    "account": {
+      "type": "string"
+    },
+    "date": {
+      "type": "number",
+      "format": "date"
+    }
+  },
+  "required": ["operationType", "sum", "account", "date"]
+}
