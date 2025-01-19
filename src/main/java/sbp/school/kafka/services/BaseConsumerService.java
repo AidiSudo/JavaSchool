@@ -1,11 +1,10 @@
 package sbp.school.kafka.services;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sbp.school.kafka.entities.Transaction;
+import sbp.school.kafka.utils.Constants;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -14,33 +13,33 @@ import java.util.Properties;
 /**
  * Потребитель данных из брокера
  */
-public class ConsumerService {
-    private final KafkaConsumer<String, Transaction> consumer;
+public abstract class BaseConsumerService<V> {
+    private final KafkaConsumer<String, V> consumer;
 
-    private static final Logger logger = LoggerFactory.getLogger(ConsumerService.class.getName());
+    protected static final Logger logger = LoggerFactory.getLogger(BaseConsumerService.class.getName());
+    protected final Properties properties;
 
     /**
      * ctor
      *
      * @param properties проперти
      */
-    public ConsumerService(Properties properties) {
+    public BaseConsumerService(Properties properties) {
         this.consumer = new KafkaConsumer<>(properties);
+        this.properties = properties;
     }
 
     /**
      * Начать прослушивать сообщения из брокера
      */
-    public void startListen(String topic) {
-        this.consumer.subscribe(Collections.singletonList(topic));
+    public void startListen() {
+        this.consumer.subscribe(Collections.singletonList(getTopicName()));
 
         try {
             while (true) {
-                ConsumerRecords<String, Transaction> records = consumer.poll(Duration.ofMillis(100));
+                ConsumerRecords<String, V> records = consumer.poll(Duration.ofMillis(100));
 
-                for (var record : records) {
-                    processRecord(record);
-                }
+                processRecord(records);
 
                 consumer.commitAsync();
             }
@@ -58,8 +57,14 @@ public class ConsumerService {
         }
     }
 
-    private void processRecord(ConsumerRecord<String, Transaction> record) {
-        logger.trace(String.format("Получена запись по транзакции c ключом %s из партиции %n из топика %s",
-                record.value().getUuid(), record.partition(), record.topic()));
+    protected String getTopicName() {
+        return properties.getProperty(Constants.TOPIC_PROPERTY_NAME);
     }
+
+    /**
+     * Обработать записи
+     *
+     * @param records записи
+     */
+    protected abstract void processRecord(ConsumerRecords<String, V> records);
 }
