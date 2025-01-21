@@ -42,8 +42,8 @@ public class ProcessTest {
             var nowTimeStamp = Calendar.getInstance().getTimeInMillis();
 
             var debitDto = new TransactionDto(debitTransaction, nowTimeStamp);
-            var creditDto = new TransactionDto(creditTransaction, nowTimeStamp);
-            var arrestDto = new TransactionDto(arrestTransaction, nowTimeStamp);
+            var creditDto = new TransactionDto(creditTransaction, nowTimeStamp + 200);
+            var arrestDto = new TransactionDto(arrestTransaction, nowTimeStamp + 300);
 
             ProducerTransactionStore.TRANSACTIONS_FOR_SEND.addAll(Arrays.asList(debitDto, creditDto, arrestDto));
         }, 0, 6, TimeUnit.SECONDS);
@@ -54,7 +54,7 @@ public class ProcessTest {
 
         // запуск отправки подтверждений
         scheduledExecutorService.scheduleAtFixedRate(new BackFlowTopicTransactionTask(producerServiceForAck, timeWindowMillis),
-                10, 5, TimeUnit.SECONDS);
+                10, 12, TimeUnit.SECONDS);
 
         // запуск потребителя транзакций
         executorService.execute(() -> new TransactionConsumerService(propertiesForTransactionConsumer).startListen());

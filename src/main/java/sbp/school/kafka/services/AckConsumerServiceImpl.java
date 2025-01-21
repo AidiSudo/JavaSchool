@@ -28,24 +28,13 @@ public class AckConsumerServiceImpl extends BaseConsumerService<AckDto> {
             return;
         }
 
-        Map<Long, List<TransactionDto>> aggregatedTransactionsByTimeStamp = new HashMap<>();
-
-        for (var transcation : ProducerTransactionStore.SENDING_TRANSACTIONS) {
-            List<TransactionDto> transactionDtos = aggregatedTransactionsByTimeStamp.get(transcation.getTimestamp());
-
-            if (transactionDtos == null) {
-                transactionDtos = new ArrayList<>();
-
-                aggregatedTransactionsByTimeStamp.put(transcation.getTimestamp(), transactionDtos);
-            }
-
-            transactionDtos.add(transcation);
-        }
-
         for (var record : records) {
             var ack = record.value();
 
-            List<TransactionDto> transactions = aggregatedTransactionsByTimeStamp.get(ack.getTimestamp());
+            List<TransactionDto> transactions = ProducerTransactionStore.SENDING_TRANSACTIONS.stream()
+                    .filter(transaction -> transaction.getTimestamp() >= ack.getStartTimeWindow() &&
+                            transaction.getTimestamp() <= ack.getEndTimeWindow())
+                    .toList();
 
             if (transactions != null && !transactions.isEmpty()) {
                 try {
@@ -54,20 +43,20 @@ public class AckConsumerServiceImpl extends BaseConsumerService<AckDto> {
                             .collect(Collectors.toList()));
 
                     if (!hashSum.equals(ack.getHash())) {
-                        logger.info(String.format("Хэши не совпали, транзакции с timestamp %d буду отправлены повторно",
-                                transactions.get(0).getTimestamp()));
+                        logger.info(String.format("Хэши не совпали, транзакции во временом промежутке %d - %d" +
+                                        " буду отправлены повторно", ack.getStartTimeWindow(), ack.getEndTimeWindow()));
 
                         ProducerTransactionStore.TRANSACTIONS_FOR_SEND.addAll(transactions);
                     } else {
-                        logger.info(String.format("Хэши для транзакций с timestamp %d совпали",
-                                transactions.get(0).getTimestamp()));
+                        logger.info(String.format("Хэши для транзакций во временом промежутке %d - %d совпали",
+                                ack.getStartTimeWindow(), ack.getEndTimeWindow()));
                     }
 
                     ProducerTransactionStore.SENDING_TRANSACTIONS.removeAll(transactions);
 
                 } catch (Exception e) {
-                    logger.error(String.format("Ошибка подсчета хэш суммы для записей с временной меткой %d",
-                            transactions.get(0).getTimestamp()));
+                    logger.error(String.format("Ошибка подсчета хэш суммы для записей во временом промежутке %d - %d",
+                            ack.getStartTimeWindow(), ack.getEndTimeWindow()));
                 }
             }
         }

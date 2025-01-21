@@ -5,9 +5,13 @@ package sbp.school.kafka.entities;
  */
 public class AckDto {
     /**
-     * Временная метка в формате Unix timestamp
+     * Начало временного промежутка формате Unix timestamp
      */
-    private Long timestamp;
+    private Long startTimeWindow;
+    /**
+     * Конец временного промежутка формате Unix timestamp
+     */
+    private Long endTimeWindow;
     /**
      * Хеш-сумма
      */
@@ -21,20 +25,14 @@ public class AckDto {
     /**
      * ctor
      *
-     * @param timestamp временная метка
+     * @param startTimeWindow начало временного промежутка
+     * @param endTimeWindow конец временного промежутка
      * @param hash хеш-сумма
      */
-    public AckDto(Long timestamp, String hash) {
-        this.timestamp = timestamp;
+    public AckDto(Long startTimeWindow, Long endTimeWindow, String hash) {
+        this.startTimeWindow = startTimeWindow;
+        this.endTimeWindow = endTimeWindow;
         this.hash = hash;
-    }
-
-    public Long getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(Long timestamp) {
-        this.timestamp = timestamp;
     }
 
     public String getHash() {
@@ -43,5 +41,21 @@ public class AckDto {
 
     public void setHash(String hash) {
         this.hash = hash;
+    }
+
+    public Long getStartTimeWindow() {
+        return startTimeWindow;
+    }
+
+    public void setStartTimeWindow(Long startTimeWindow) {
+        this.startTimeWindow = startTimeWindow;
+    }
+
+    public Long getEndTimeWindow() {
+        return endTimeWindow;
+    }
+
+    public void setEndTimeWindow(Long endTimeWindow) {
+        this.endTimeWindow = endTimeWindow;
     }
 }

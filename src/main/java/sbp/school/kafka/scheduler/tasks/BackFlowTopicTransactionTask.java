@@ -8,8 +8,10 @@ import sbp.school.kafka.services.BaseProducerService;
 import sbp.school.kafka.store.ConsumerTransactionStore;
 import sbp.school.kafka.utils.HashUtils;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Calendar;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Таск шедуллера подсчета и отправки хешей идентификаторов транзакций
@@ -35,10 +37,9 @@ public class BackFlowTopicTransactionTask implements Runnable {
     @Override
     public void run() {
         try {
-            List<AckDto> acks = prepareAcks();
-
-            for (var ack : acks) {
-                ackProducerService.send(ack.getHash(), ack);
+            var ack = prepareAck();
+            if (ack.isPresent()) {
+                ackProducerService.send(ack.get().getHash(), ack.get());
             }
         } catch (Exception e) {
             logger.error("Ошибка при попытке отправки сообщений в топик обратного потока", e);
@@ -46,48 +47,38 @@ public class BackFlowTopicTransactionTask implements Runnable {
     }
 
     /**
-     * Подготовить данные для отправки
+     * Сформировать подтверждение
      *
-     * @return подтверждения
+     * @return подтверждение
      * @throws Exception исключение
      */
-    private List<AckDto> prepareAcks() throws Exception {
+    private Optional<AckDto> prepareAck() throws Exception {
         Long currentTimeStamp = Calendar.getInstance().getTimeInMillis();
 
         List<TransactionDto> transactions = ConsumerTransactionStore.STORE.stream()
-                .filter(item -> item.getTimestamp() + timeWindow < currentTimeStamp)
-                .collect(Collectors.toList());
+                .filter(item -> currentTimeStamp - item.getTimestamp() >= timeWindow)
+                .toList();
 
         if (transactions.isEmpty()) {
-            return Collections.emptyList();
+            return Optional.empty();
         }
 
         ConsumerTransactionStore.STORE.removeAll(transactions);
 
-        Map<Long, List<TransactionDto>> aggregatedTransactionsByTimeStamp = new HashMap<>();
+        // находим верхнюю и нижнюю границу временого отрезка
+        var bottomTimeBorderTransaction = transactions.stream()
+                .min(Comparator.comparing(TransactionDto::getTimestamp))
+                .orElse(new TransactionDto());
 
-        for (var transcation : transactions) {
-            List<TransactionDto> transactionDtos = aggregatedTransactionsByTimeStamp.get(transcation.getTimestamp());
+        var upperTimeBorderTransaction = transactions.stream()
+                .max(Comparator.comparing(TransactionDto::getTimestamp))
+                .orElse(new TransactionDto());
 
-            if (transactionDtos == null) {
-                transactionDtos = new ArrayList<>();
-
-                aggregatedTransactionsByTimeStamp.put(transcation.getTimestamp(), transactionDtos);
-            }
-
-            transactionDtos.add(transcation);
-        }
-
-        List<AckDto> acks = new ArrayList<>();
-
-        for (var entry : aggregatedTransactionsByTimeStamp.entrySet()) {
-            var transactionsGuids = entry.getValue().stream()
-                    .map(item -> item.getTransaction().getUuid())
-                    .collect(Collectors.toList());
-
-            acks.add(new AckDto(entry.getKey(), HashUtils.calcHashSum(transactionsGuids)));
-        }
-
-        return acks;
+        return Optional.of(new AckDto(bottomTimeBorderTransaction.getTimestamp(),
+                                upperTimeBorderTransaction.getTimestamp(),
+                                HashUtils.calcHashSum(transactions
+                                    .stream()
+                                    .map(item -> item.getTransaction().getUuid())
+                                    .toList())));
     }
 }
