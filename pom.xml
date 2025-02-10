@@ -11,6 +11,7 @@
     <properties>
         <apache-kafka.version>3.3.2</apache-kafka.version>
         <slf4j.version>1.7.36</slf4j.version>
+        <postgresql.version>42.7.5</postgresql.version>
     </properties>
 
 
@@ -42,6 +43,12 @@
             <artifactId>junit-jupiter</artifactId>
             <version>RELEASE</version>
             <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${postgresql.version}</version>
         </dependency>
 
     </dependencies>
