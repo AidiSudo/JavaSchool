@@ -1,5 +1,7 @@
 package sbp.school.kafka.services;
 
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.Test;
 import sbp.school.kafka.entities.OperationType;
 import sbp.school.kafka.entities.Transaction;
@@ -30,8 +32,10 @@ public class ProcessTest {
         Properties propertiesForBackFlowProducer = PropertyReader.readPropertiesFromFile("backFlowTopicProducer.properties");
         Properties propertiesForBackFlowConsumer = PropertyReader.readPropertiesFromFile("backFlowTopicConsumer.properties");
 
-        BaseProducerService producerServiceForTransaction = new TransactionProducerServiceImpl(propertiesForTransactionProducer);
-        BaseProducerService producerServiceForAck = new AckProducerServiceImpl(propertiesForBackFlowProducer);
+        BaseProducerService producerServiceForTransaction = new TransactionProducerServiceImpl(
+                new KafkaProducer(propertiesForTransactionProducer));
+        BaseProducerService producerServiceForAck = new AckProducerServiceImpl(
+                new KafkaProducer(propertiesForBackFlowProducer));
 
         // запуск наполнения хранилища транзакций
         scheduledExecutorService.scheduleAtFixedRate(() -> {
@@ -57,10 +61,11 @@ public class ProcessTest {
                 10, 12, TimeUnit.SECONDS);
 
         // запуск потребителя транзакций
-        executorService.execute(() -> new TransactionConsumerService(propertiesForTransactionConsumer).startListen());
+        executorService.execute(() -> new TransactionConsumerService(
+                new KafkaConsumer(propertiesForTransactionConsumer)).startListen());
 
         // запуск потребителя подтверждений
-        executorService.execute(() -> new AckConsumerServiceImpl(propertiesForBackFlowConsumer).startListen());
+        executorService.execute(() -> new AckConsumerServiceImpl(new KafkaConsumer(propertiesForBackFlowConsumer)).startListen());
 
         Thread.currentThread().join();
     }

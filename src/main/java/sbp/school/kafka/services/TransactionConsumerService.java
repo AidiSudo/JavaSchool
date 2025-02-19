@@ -1,10 +1,10 @@
 package sbp.school.kafka.services;
 
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import sbp.school.kafka.entities.TransactionDto;
 import sbp.school.kafka.store.ConsumerTransactionStore;
-
-import java.util.Properties;
+import sbp.school.kafka.utils.Constants;
 
 /**
  * Слушатель транзакций
@@ -13,10 +13,25 @@ public class TransactionConsumerService extends BaseConsumerService<TransactionD
     /**
      * ctor
      *
-     * @param properties проперти
+     * @param consumer потребитель
      */
-    public TransactionConsumerService(Properties properties) {
-        super(properties);
+    public TransactionConsumerService(Consumer consumer) {
+        super(consumer, (e) -> logger.error("Ошибка обработки сообщений из брокера"));
+    }
+
+    /**
+     * ctor
+     *
+     * @param consumer потребитель
+     * @param exceptionConsumer call-back в случае исключения
+     */
+    public TransactionConsumerService(Consumer consumer, java.util.function.Consumer<Throwable> exceptionConsumer) {
+        super(consumer, exceptionConsumer);
+    }
+
+    @Override
+    protected String getTopicName() {
+        return Constants.TRANSACTION_TOPIC;
     }
 
     protected void processRecord(ConsumerRecords<String, TransactionDto> records) {

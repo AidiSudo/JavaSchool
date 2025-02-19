@@ -1,6 +1,7 @@
 package sbp.school.kafka.entities;
 
 import java.util.Calendar;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -76,5 +77,33 @@ public class Transaction {
 
     public void setUuid(String uuid) {
         this.uuid = uuid;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(uuid, account, date, operationType.getOperationKey(), sum);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        }
+
+        if (o == null || o.getClass() != this.getClass()) {
+            return false;
+        }
+
+        if (hashCode() != o.hashCode()) {
+            return false;
+        }
+
+        Transaction transaction = (Transaction) o;
+
+        return transaction.uuid.equals(this.uuid) &&
+                transaction.account.equals(this.account) &&
+                transaction.date.equals(this.date) &&
+                transaction.operationType.equals(this.operationType) &&
+                transaction.sum == this.sum;
     }
 }

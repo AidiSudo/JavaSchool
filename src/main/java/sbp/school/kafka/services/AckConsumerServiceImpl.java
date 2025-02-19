@@ -1,9 +1,11 @@
 package sbp.school.kafka.services;
 
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import sbp.school.kafka.entities.AckDto;
 import sbp.school.kafka.entities.TransactionDto;
 import sbp.school.kafka.store.ProducerTransactionStore;
+import sbp.school.kafka.utils.Constants;
 import sbp.school.kafka.utils.HashUtils;
 
 import java.util.*;
@@ -16,10 +18,24 @@ public class AckConsumerServiceImpl extends BaseConsumerService<AckDto> {
     /**
      * ctor
      *
-     * @param properties проперти
+     * @param consumer потребитель
      */
-    public AckConsumerServiceImpl(Properties properties) {
-        super(properties);
+    public AckConsumerServiceImpl(Consumer consumer) {
+        super(consumer, e -> logger.error("Ошибка обработки сообщений из брокера", e));
+    }
+
+    /**
+     * ctor
+     *
+     * @param consumer потребитель
+     */
+    public AckConsumerServiceImpl(Consumer consumer, java.util.function.Consumer<Throwable> exceptionConsumer) {
+        super(consumer, exceptionConsumer);
+    }
+
+    @Override
+    protected String getTopicName() {
+        return Constants.BACK_FLOW_TOPIC;
     }
 
     @Override

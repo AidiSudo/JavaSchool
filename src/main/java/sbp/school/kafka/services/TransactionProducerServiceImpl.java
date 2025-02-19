@@ -1,9 +1,9 @@
 package sbp.school.kafka.services;
 
+import org.apache.kafka.clients.producer.Producer;
 import sbp.school.kafka.entities.TransactionDto;
 import sbp.school.kafka.store.ProducerTransactionStore;
-
-import java.util.Properties;
+import sbp.school.kafka.utils.Constants;
 
 /**
  * Поставщик данных в кафку об транзакциях
@@ -12,10 +12,15 @@ public class TransactionProducerServiceImpl extends BaseProducerService<Transact
     /**
      * ctor
      *
-     * @param properties настройки
+     * @param producer поставщик
      */
-    public TransactionProducerServiceImpl(Properties properties) {
-        super(properties);
+    public TransactionProducerServiceImpl(Producer producer) {
+        super(producer);
+    }
+
+    @Override
+    protected String getTopicName() {
+        return Constants.TRANSACTION_TOPIC;
     }
 
     @Override

@@ -1,31 +1,25 @@
 package sbp.school.kafka.services;
 
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sbp.school.kafka.utils.Constants;
-
-import java.util.Properties;
 
 /**
  * Поставщик данных в кафку
  */
 public abstract class BaseProducerService<V> {
     private final Producer<String, V> producer;
-    protected final Properties properties;
 
     protected static final Logger logger = LoggerFactory.getLogger(BaseProducerService.class.getName());
 
     /**
      * ctor
      *
-     * @param properties настройки
+     * @param producer поставщик
      */
-    public BaseProducerService(Properties properties) {
-        this.producer = new KafkaProducer<>(properties);
-        this.properties = properties;
+    public BaseProducerService(Producer producer) {
+        this.producer = producer;
     }
 
     /**
@@ -45,7 +39,6 @@ public abstract class BaseProducerService<V> {
                                     metadata.offset()));
                         } else {
                             handleSuccess(value);
-
                         }
                     }));
         } finally {
@@ -53,9 +46,7 @@ public abstract class BaseProducerService<V> {
         }
     }
 
-    protected String getTopicName() {
-        return properties.getProperty(Constants.TOPIC_PROPERTY_NAME);
-    }
+    protected abstract String getTopicName();
 
     protected abstract void handleSuccess(V value);
 }

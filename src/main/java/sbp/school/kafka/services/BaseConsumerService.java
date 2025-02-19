@@ -1,32 +1,30 @@
 package sbp.school.kafka.services;
 
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sbp.school.kafka.utils.Constants;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.Properties;
 
 /**
  * Потребитель данных из брокера
  */
 public abstract class BaseConsumerService<V> {
-    private final KafkaConsumer<String, V> consumer;
+    protected final Consumer<String, V> consumer;
 
     protected static final Logger logger = LoggerFactory.getLogger(BaseConsumerService.class.getName());
-    protected final Properties properties;
+    private java.util.function.Consumer<Throwable> exceptionConsumer;
 
     /**
      * ctor
      *
-     * @param properties проперти
+     * @param consumer потребитель
      */
-    public BaseConsumerService(Properties properties) {
-        this.consumer = new KafkaConsumer<>(properties);
-        this.properties = properties;
+    public BaseConsumerService(Consumer consumer, java.util.function.Consumer<Throwable> exceptionConsumer) {
+        this.consumer = consumer;
+        this.exceptionConsumer = exceptionConsumer;
     }
 
     /**
@@ -45,7 +43,7 @@ public abstract class BaseConsumerService<V> {
             }
         }
         catch (Exception e) {
-            logger.error("Ошибка обработки сообщений из брокера", e);
+            exceptionConsumer.accept(e);
         }
         finally {
             try {
@@ -57,9 +55,11 @@ public abstract class BaseConsumerService<V> {
         }
     }
 
-    protected String getTopicName() {
-        return properties.getProperty(Constants.TOPIC_PROPERTY_NAME);
+    public void stop() {
+        consumer.wakeup();
     }
+
+    protected abstract String getTopicName();
 
     /**
      * Обработать записи
